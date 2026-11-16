@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="hi-Latn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1f6f5c">
+<title>Committee ka Hisaab</title>
+<style>
+  :root{
+    --bg:#f7f3ec; --card:#ffffff; --ink:#1d2320; --muted:#5f6b66; --line:#e6e0d6;
+    --acc:#1f6f5c; --acc-soft:#e3f1ec; --good:#1f7a3d; --good-soft:#e5f4ea;
+    --bad:#b3401f; --bad-soft:#fbe9e3; --warn-soft:#fff4dc;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans",Arial,sans-serif;
+    font-size:17px;line-height:1.45}
+  header{background:var(--acc);color:#fff;padding:18px 16px 16px;text-align:center}
+  header h1{margin:0;font-size:24px}
+  header p{margin:4px 0 0;opacity:.85;font-size:14px}
+  main{max-width:580px;margin:0 auto;padding:14px 12px 40px}
+  .card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:14px;
+    box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--line)}
+  .card h2{margin:0 0 4px;font-size:19px}
+  .card .sub{margin:0 0 12px;color:var(--muted);font-size:14px}
+  .step{display:inline-block;background:var(--acc);color:#fff;border-radius:50%;
+    width:26px;height:26px;text-align:center;line-height:26px;font-size:14px;margin-right:6px}
+  label{display:block;font-weight:600;margin:10px 0 4px;font-size:15px}
+  label small{font-weight:400;color:var(--muted)}
+  input,select{width:100%;font-size:18px;padding:11px 12px;border:1.5px solid #cfc8bb;
+    border-radius:10px;background:#fff;color:var(--ink)}
+  input:focus,select:focus{outline:none;border-color:var(--acc)}
+  .row{display:flex;gap:10px}
+  .row>div{flex:1}
+  button{font-size:17px;font-weight:600;border:0;border-radius:10px;padding:12px 14px;
+    cursor:pointer;background:var(--acc);color:#fff;width:100%;margin-top:12px}
+  button.light{background:var(--acc-soft);color:var(--acc)}
+  button.danger{background:var(--bad-soft);color:var(--bad)}
+  button.small{width:auto;font-size:14px;padding:7px 10px;margin:0}
+  .big{background:var(--acc-soft);border-radius:12px;padding:12px;margin-top:12px}
+  .big .line{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;
+    border-bottom:1px dashed #c7ddd4}
+  .big .line:last-child{border-bottom:0}
+  .big .line span{color:var(--muted);font-size:15px}
+  .big .line b{font-size:19px}
+  .big .line.hl b{color:var(--good);font-size:22px}
+  .note{background:var(--warn-soft);border-radius:10px;padding:10px 12px;font-size:15px;margin-top:10px}
+  .verdict{border-radius:10px;padding:12px;margin-top:12px;font-weight:600;font-size:16px}
+  .verdict.ok{background:var(--good-soft);color:var(--good)}
+  .verdict.no{background:var(--bad-soft);color:var(--bad)}
+  .suggest{text-align:center;margin-top:12px;background:var(--acc-soft);border-radius:12px;padding:14px}
+  .suggest .num{font-size:30px;font-weight:800;color:var(--acc)}
+  .suggest .lbl{color:var(--muted);font-size:14px}
+  table{width:100%;border-collapse:collapse;font-size:15px;margin-top:8px}
+  th{text-align:left;color:var(--muted);font-weight:600;font-size:13px;padding:6px 4px;border-bottom:1.5px solid var(--line)}
+  td{padding:9px 4px;border-bottom:1px solid var(--line);vertical-align:middle}
+  td.r,th.r{text-align:right}
+  .tag{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:2px 6px;margin-top:2px}
+  .tag.org{background:#ece6ff;color:#5b3fb5}
+  .tag.last{background:#e4eefc;color:#2d5fa8}
+  .tag.me{background:#ffe9c7;color:#8a5200}
+  .pending{color:#a06a00;font-size:14px}
+  .muted{color:var(--muted);font-size:14px}
+  .tot{margin-top:10px;font-weight:600;display:flex;justify-content:space-between}
+  .hidden{display:none}
+  details summary{cursor:pointer;color:var(--acc);font-weight:600;font-size:15px;margin-top:8px}
+  details p{font-size:14px;color:var(--muted);margin:6px 0}
+  .switch{display:flex;gap:8px;align-items:flex-end}
+  .switch select{flex:1}
+  .switch button{width:auto;margin:0;white-space:nowrap}
+  footer{text-align:center;color:var(--muted);font-size:13px;margin-top:10px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Committee ka Hisaab</h1>
+  <p>Kist, ghaata, fayda aur suggested number, sab ek jagah</p>
+</header>
+
+<main>
+
+  <!-- Committee chooser -->
+  <div class="card">
+    <div class="switch">
+      <div style="flex:1">
+        <label for="cSelect" style="margin-top:0">Kaunsi committee?</label>
+        <select id="cSelect"></select>
+      </div>
+      <button id="btnNew" class="light">+ Nayi</button>
+    </div>
+  </div>
+
+  <!-- 1. Setup -->
+  <div class="card">
+    <h2><span class="step">1</span>Committee ki jaankari</h2>
+    <p class="sub">Ek baar bharo, apne aap save ho jayega.</p>
+    <label for="cName">Committee ka naam</label>
+    <input id="cName" type="text" placeholder="Jaise: Mohalla committee">
+    <div class="row">
+      <div>
+        <label for="cAmount">Kul rakam (₹)</label>
+        <input id="cAmount" type="number" inputmode="numeric" min="0">
+      </div>
+      <div>
+        <label for="cMonths">Kitne mahine</label>
+        <input id="cMonths" type="number" inputmode="numeric" min="2">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="cOrg">Organizer kis mahine</label>
+        <input id="cOrg" type="number" inputmode="numeric" min="1">
+      </div>
+      <div>
+        <label for="cStart">Pehla mahina <small>(optional)</small></label>
+        <input id="cStart" type="month">
+      </div>
+    </div>
+    <div class="big">
+      <div class="line hl"><span>Har mahine ki normal kist</span><b id="baseKist">–</b></div>
+    </div>
+    <div id="setupErr" class="note hidden"></div>
+  </div>
+
+  <!-- 2. Monthly entry -->
+  <div class="card">
+    <h2><span class="step">2</span>Mahine ka hisaab</h2>
+    <p class="sub">Koi bhi mahina chuno, kabhi bhi bharo. Bhool gaye toh baad mein bhar sakte ho.</p>
+    <label for="qMonth">Kaunsa mahina</label>
+    <select id="qMonth"></select>
+    <div id="qGhaataWrap">
+      <label for="qGhaata">Kitne ghaate par gaya (₹)</label>
+      <input id="qGhaata" type="number" inputmode="numeric" min="0" placeholder="Jaise: 20000">
+    </div>
+    <div id="qNoBid" class="note hidden"></div>
+
+    <div class="big" id="qResult">
+      <div class="line"><span>Dena chahiye tha</span><b id="rBase">–</b></div>
+      <div class="line"><span>Is baar dena pada</span><b id="rKist">–</b></div>
+      <div class="line"><span>Boli wale ko mila</span><b id="rMila">–</b></div>
+      <div class="line hl"><span>Aapka fayda</span><b id="rFayda">–</b></div>
+      <div class="line"><span>Fayda kitne % (kist ka)</span><b id="rPct">–</b></div>
+    </div>
+    <button id="btnSave">Is mahine ko save karo</button>
+    <div id="saveMsg" class="muted" style="text-align:center;margin-top:6px"></div>
+  </div>
+
+  <!-- 3. All months -->
+  <div class="card">
+    <h2><span class="step">3</span>Sab mahinon ka hisaab</h2>
+    <p class="sub">Kisi mahine ko badalna ho toh "Badlo" dabao.</p>
+    <table>
+      <thead><tr><th>Mahina</th><th class="r">Ghaata</th><th class="r">Kist</th><th class="r">Fayda</th><th></th></tr></thead>
+      <tbody id="tBody"></tbody>
+    </table>
+    <div class="tot"><span>Ab tak ka kul fayda</span><span id="totFayda">–</span></div>
+    <div class="muted" id="totNote"></div>
+
+    <label for="takenSel" style="margin-top:16px">Committee maine kis mahine uthayi?</label>
+    <select id="takenSel"></select>
+    <div id="takenBox"></div>
+  </div>
+
+  <!-- 4. Method 1 -->
+  <div class="card">
+    <h2><span class="step">4</span>Suggested number: Tareeka 1</h2>
+    <p class="sub">Har mahine ke average fayde ke hisaab se. Average apne hisaab se badal sakte ho.</p>
+    <label for="m1Avg">Har mahine ka average fayda (₹)</label>
+    <input id="m1Avg" type="number" inputmode="numeric" min="0">
+    <div class="suggest">
+      <div class="lbl" id="m1For"></div>
+      <div class="num" id="m1Num">–</div>
+      <div class="lbl" id="m1After">ghaate se kam aaye toh le lo</div>
+    </div>
+    <details>
+      <summary>Ye number kaise bana?</summary>
+      <p id="m1How"></p>
+    </details>
+  </div>
+
+  <!-- 5. Method 2 -->
+  <div class="card">
+    <h2><span class="step">5</span>Suggested number: Tareeka 2</h2>
+    <p class="sub">Aapke bhare hue asli ghaate ke hisaab se. Har baar naya mahina bharne par apne aap update hota hai.</p>
+    <div class="suggest" id="m2Box">
+      <div class="lbl" id="m2For"></div>
+      <div class="num" id="m2Num">–</div>
+      <div class="lbl" id="m2After">ghaate se kam aaye toh le lo</div>
+      <div class="lbl" id="m2Info" style="margin-top:6px"></div>
+    </div>
+    <details>
+      <summary>Ye number kaise bana?</summary>
+      <p id="m2How"></p>
+    </details>
+  </div>
+
+  <!-- 6. Live boli check -->
+  <div class="card">
+    <h2><span class="step">6</span>Boli chal rahi hai? Turant check karo</h2>
+    <p class="sub">Boli ke time abhi jitne ghaate ki baat chal rahi hai, woh daalo. Ye kuch save nahi karta.</p>
+    <label for="liveG">Abhi kitne ghaate par boli chal rahi hai (₹)</label>
+    <input id="liveG" type="number" inputmode="numeric" min="0" placeholder="Jaise: 15000">
+    <div id="liveOut"></div>
+  </div>
+
+  <!-- 7. Backup -->
+  <div class="card">
+    <h2>Backup</h2>
+    <p class="sub">Saara data isi phone ke browser mein save hota hai. Kabhi-kabhi backup le lo, taaki phone badalne ya browser saaf hone par data na jaye.</p>
+    <button id="btnBackup" class="light">Backup file download karo</button>
+    <button id="btnRestore" class="light">Backup file se wapas laao</button>
+    <input id="restoreFile" type="file" accept=".json,application/json" class="hidden">
+    <button id="btnDelete" class="danger">Ye committee delete karo</button>
+  </div>
+
+  <footer>Ye website internet ya AI ke bina bhi hisaab karti hai. Data sirf aapke phone mein rehta hai.</footer>
+</main>
+
+<script>
+(function(){
+  var KEY = 'committee-hisaab-v1';
+  var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var store = null;
+
+  function $(id){ return document.getElementById(id); }
+  function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+  function rs(n){ return '₹' + Math.round(n).toLocaleString('en-IN'); }
+  function pct(n){ return (Math.round(n * 10) / 10).toLocaleString('en-IN') + '%'; }
+  function newId(){ return 'c' + Date.now() + Math.floor(Math.random() * 1000); }
+  function blank(name){
+    return { name: name || 'Meri committee', amount: 200000, months: 15, org: 2, start: '',
+             entries: {}, taken: 0, m1avg: 1250 };
+  }
+
+  function load(){
+    try { store = JSON.parse(localStorage.getItem(KEY)); } catch(e) { store = null; }
+    if (!store || !store.list || !Object.keys(store.list).length){
+      var id = newId(); store = { active: id, list: {} }; store.list[id] = blank();
+    }
+    if (!store.list[store.active]) store.active = Object.keys(store.list)[0];
+    Object.keys(store.list).forEach(function(id){
+      var c = store.list[id];
+      if (c.m1avg === undefined) c.m1avg = (c.m1min !== undefined && c.m1max !== undefined) ? (num(c.m1min) + num(c.m1max)) / 2 : 1250;
+    });
+  }
+  function save(){ try { localStorage.setItem(KEY, JSON.stringify(store)); } catch(e) {} }
+  function C(){ return store.list[store.active]; }
+
+  function valid(c){ return c.amount > 0 && c.months >= 2 && c.org >= 1 && c.org <= c.months; }
+  function type(c, m){ if (m === c.org) return 'org'; if (m === c.months) return 'last'; return 'bid'; }
+  function baseKist(c){ return c.amount / c.months; }
+  function calc(c, d){
+    var b = baseKist(c), f = d / c.months;
+    return { base: b, kist: (c.amount - d) / c.months, mila: c.amount - d, fayda: f, pct: b ? f / b * 100 : 0 };
+  }
+  function bidMonths(c){ var n = 0; for (var m = 1; m <= c.months; m++) if (type(c, m) === 'bid') n++; return n; }
+  function monthLabel(c, m, short){
+    var s = 'Mahina ' + m;
+    if (c.start){
+      var p = c.start.split('-'), d = new Date(+p[0], +p[1] - 1 + m - 1, 1);
+      s += short ? '' : ' (' + MONTHS[d.getMonth()] + ' ' + d.getFullYear() + ')';
+      if (short) return m + ' · ' + MONTHS[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2);
+    }
+    return short ? String(m) : s;
+  }
+  function filled(c, m){ return Object.prototype.hasOwnProperty.call(c.entries, m); }
+  function ghaata(c, m){ return type(c, m) === 'bid' ? (filled(c, m) ? num(c.entries[m]) : null) : 0; }
+
+  /* ---------- Committee chooser ---------- */
+  function renderChooser(){
+    var sel = $('cSelect'); sel.innerHTML = '';
+    Object.keys(store.list).forEach(function(id){
+      var o = document.createElement('option'); o.value = id;
+      o.textContent = store.list[id].name || 'Committee'; if (id === store.active) o.selected = true;
+      sel.appendChild(o);
+    });
+  }
+
+  /* ---------- 1. Setup ---------- */
+  function fillSetup(){
+    var c = C();
+    $('cName').value = c.name; $('cAmount').value = c.amount; $('cMonths').value = c.months;
+    $('cOrg').value = c.org; $('cStart').value = c.start || '';
+    $('m1Avg').value = c.m1avg;
+  }
+  function readSetup(){
+    var c = C();
+    c.name = $('cName').value.trim() || 'Committee';
+    c.amount = num($('cAmount').value); c.months = Math.floor(num($('cMonths').value));
+    c.org = Math.floor(num($('cOrg').value)); c.start = $('cStart').value || '';
+    c.m1avg = num($('m1Avg').value);
+    save(); renderChooser(); renderAll(true);
+  }
+
+  /* ---------- 2. Monthly entry ---------- */
+  function firstPendingMonth(c){
+    for (var m = 1; m <= c.months; m++) if (type(c, m) === 'bid' && !filled(c, m)) return m;
+    return 1;
+  }
+  function renderMonthSelect(keep){
+    var c = C(), sel = $('qMonth'), cur = keep ? +sel.value : 0;
+    sel.innerHTML = '';
+    for (var m = 1; m <= c.months; m++){
+      var o = document.createElement('option'); o.value = m;
+      var t = type(c, m), extra = '';
+      if (t === 'org') extra = ' – Organizer';
+      else if (t === 'last') extra = ' – Aakhri mahina';
+      else if (filled(c, m)) extra = ' – bhar diya';
+      else extra = ' – bharna baaki';
+      o.textContent = monthLabel(c, m) + extra; sel.appendChild(o);
+    }
+    sel.value = (cur >= 1 && cur <= c.months) ? cur : firstPendingMonth(c);
+  }
+  function onMonthChange(){
+    var c = C(), m = +$('qMonth').value;
+    $('qGhaata').value = (type(c, m) === 'bid' && filled(c, m)) ? c.entries[m] : '';
+    $('saveMsg').textContent = '';
+    renderQuick();
+  }
+  function renderQuick(){
+    var c = C(), m = +$('qMonth').value, t = type(c, m);
+    var noBid = $('qNoBid');
+    if (t !== 'bid'){
+      $('qGhaataWrap').classList.add('hidden'); $('btnSave').classList.add('hidden');
+      noBid.classList.remove('hidden');
+      noBid.textContent = t === 'org'
+        ? 'Is mahine organizer poori rakam leta hai. Boli nahi lagti, sab poori kist dete hain.'
+        : 'Aakhri mahine bache hue member ko poori rakam milti hai. Boli nahi lagti, sab poori kist dete hain.';
+    } else {
+      $('qGhaataWrap').classList.remove('hidden'); $('btnSave').classList.remove('hidden');
+      noBid.classList.add('hidden');
+    }
+    var d = t === 'bid' ? num($('qGhaata').value) : 0;
+    if (!valid(c)){ ['rBase','rKist','rMila','rFayda','rPct'].forEach(function(k){ $(k).textContent = '–'; }); return; }
+    var r = calc(c, d);
+    $('rBase').textContent = rs(r.base);
+    $('rKist').textContent = rs(r.kist);
+    $('rMila').textContent = rs(r.mila);
+    $('rFayda').textContent = rs(r.fayda);
+    $('rPct').textContent = pct(r.pct);
+  }
+  function saveMonth(){
+    var c = C(), m = +$('qMonth').value, v = $('qGhaata').value;
+    if (v === '' || num(v) < 0){ $('saveMsg').textContent = 'Pehle ghaata bharo.'; return; }
+    if (num(v) >= c.amount){ $('saveMsg').textContent = 'Ghaata kul rakam se kam hona chahiye.'; return; }
+    c.entries[m] = num(v); save();
+    $('saveMsg').textContent = monthLabel(c, m) + ' save ho gaya.';
+    renderAll(true);
+  }
+
+  /* ---------- 3. Table ---------- */
+  function renderTable(){
+    var c = C(), body = $('tBody'); body.innerHTML = '';
+    if (!valid(c)) return;
+    var tot = 0, done = 0, bids = 0;
+    for (var m = 1; m <= c.months; m++){
+      var t = type(c, m), g = ghaata(c, m), tr = document.createElement('tr');
+      var tag = t === 'org' ? '<br><span class="tag org">Organizer</span>'
+              : t === 'last' ? '<br><span class="tag last">Aakhri</span>' : '';
+      if (c.taken === m) tag += '<br><span class="tag me">Maine uthayi</span>';
+      var html = '<td>' + monthLabel(c, m, true) + tag + '</td>';
+      if (t === 'bid') bids++;
+      if (g === null){
+        html += '<td class="r pending" colspan="3">bharna baaki</td>' +
+                '<td class="r"><button class="small light" data-m="' + m + '">Bharo</button></td>';
+      } else {
+        var r = calc(c, g); tot += r.fayda; if (t === 'bid') done++;
+        html += '<td class="r">' + (t === 'bid' ? rs(g) : '–') + '</td>' +
+                '<td class="r">' + rs(r.kist) + '</td>' +
+                '<td class="r">' + rs(r.fayda) + '</td>' +
+                '<td class="r">' + (t === 'bid' ? '<button class="small light" data-m="' + m + '">Badlo</button>' : '') + '</td>';
+      }
+      tr.innerHTML = html; body.appendChild(tr);
+    }
+    $('totFayda').textContent = rs(tot);
+    $('totNote').textContent = done + ' / ' + bids + ' boli wale mahine bhare gaye.';
+    body.querySelectorAll('button[data-m]').forEach(function(b){
+      b.addEventListener('click', function(){
+        $('qMonth').value = b.getAttribute('data-m'); onMonthChange();
+        $('qMonth').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(function(){ $('qGhaata').focus(); }, 400);
+      });
+    });
+  }
+  function totalFaydaSoFar(c){
+    var t = 0; for (var m = 1; m <= c.months; m++){ var g = ghaata(c, m); if (g !== null && type(c, m) === 'bid') t += g / c.months; }
+    return t;
+  }
+
+  /* ---------- Taken ---------- */
+  function renderTaken(){
+    var c = C(), sel = $('takenSel'); sel.innerHTML = '';
+    var o0 = document.createElement('option'); o0.value = 0; o0.textContent = 'Abhi nahi uthayi'; sel.appendChild(o0);
+    for (var m = 1; m <= c.months; m++){
+      if (type(c, m) === 'org') continue;
+      var o = document.createElement('option'); o.value = m; o.textContent = monthLabel(c, m); sel.appendChild(o);
+    }
+    if (c.taken && type(c, c.taken) === 'org') c.taken = 0;
+    if (c.taken > c.months) c.taken = 0;
+    sel.value = c.taken || 0;
+
+    var box = $('takenBox'); box.innerHTML = '';
+    if (!c.taken || !valid(c)) return;
+    var g = ghaata(c, c.taken);
+    if (g === null){
+      box.innerHTML = '<div class="note">' + monthLabel(c, c.taken) + ' ka ghaata abhi bhara nahi hai. Upar step 2 mein bharo.</div>';
+      return;
+    }
+    var f = totalFaydaSoFar(c), net = f - g;
+    var msg = net >= 0
+      ? 'Aap abhi ' + rs(net) + ' munafe mein ho.'
+      : 'Abhi ' + rs(-net) + ' ka ghaata dikh raha hai. Aage ke mahinon ka fayda judne par ye kam hoga.';
+    box.innerHTML = '<div class="big">' +
+      '<div class="line"><span>Aapko mile</span><b>' + rs(c.amount - g) + '</b></div>' +
+      '<div class="line"><span>Aapka ghaata</span><b>' + rs(g) + '</b></div>' +
+      '<div class="line"><span>Ab tak ka kul fayda</span><b>' + rs(f) + '</b></div>' +
+      '<div class="line hl"><span>Asli munafa (fayda − ghaata)</span><b>' + (net < 0 ? '−' : '') + rs(Math.abs(net)) + '</b></div>' +
+      '</div><div class="muted" style="margin-top:6px">' + msg + '</div>';
+  }
+
+  /* ---------- 4. Method 1 ---------- */
+  /* Agli boli: aakhri save kiye mahine ke baad wala boli ka mahina (organizer chhod kar) */
+  function nextBid(c){
+    var last = 0;
+    for (var m = 1; m <= c.months; m++) if (type(c, m) === 'bid' && filled(c, m)) last = m;
+    var n = last + 1;
+    while (n <= c.months && type(c, n) === 'org') n++;
+    if (n > c.months || type(c, n) === 'last') return 0;
+    return n;
+  }
+  /* Suggested box ke upar/neeche ki line. false = number mat dikhao */
+  function forLine(c, forId, afterId){
+    var nb = nextBid(c);
+    if (c.taken){
+      $(forId).textContent = 'Aap ye committee ' + monthLabel(c, c.taken) + ' mein utha chuki ho';
+      $(afterId).textContent = ''; return false;
+    }
+    if (!nb){
+      $(forId).textContent = 'Saari boliyan ho chuki hain';
+      $(afterId).textContent = 'Aakhri mahine bina boli poori rakam milegi'; return false;
+    }
+    $(forId).textContent = monthLabel(c, nb) + ' ki boli ke liye';
+    $(afterId).textContent = 'ghaate se kam aaye toh le lo';
+    return true;
+  }
+
+  function m1Value(c){ return c.m1avg * bidMonths(c); }
+  function renderM1(){
+    var c = C();
+    if (!valid(c)){ $('m1Num').textContent = '–'; $('m1For').textContent = ''; return; }
+    var n = bidMonths(c), avg = c.m1avg;
+    $('m1Num').textContent = forLine(c, 'm1For', 'm1After') ? rs(m1Value(c)) : '–';
+    $('m1How').textContent = c.months + ' mahine mein se ' + n + ' mahine boli lagti hai ' +
+      '(organizer ka mahina aur aakhri mahina chhod kar). Har mahine average fayda ' + rs(avg) +
+      ' maana, toh poori committee mein kul fayda ≈ ' + rs(avg) + ' × ' + n + ' = ' + rs(m1Value(c)) +
+      '. Agar aap isse kam ghaate par committee uthati ho, toh aapka fayda ghaate se zyada rahega, yaani aap nuksaan mein nahi rahogi.';
+  }
+
+  /* ---------- 5. Method 2 ---------- */
+  function m2Calc(c){
+    var actual = 0, k = 0, r = 0;
+    for (var m = 1; m <= c.months; m++){
+      if (type(c, m) !== 'bid') continue;
+      if (filled(c, m)){ actual += num(c.entries[m]) / c.months; k++; } else r++;
+    }
+    if (!k) return null;
+    var avg = actual / k;
+    return { actual: actual, k: k, r: r, avg: avg, value: actual + avg * r };
+  }
+  function renderM2(){
+    var c = C(), res = valid(c) ? m2Calc(c) : null;
+    var show = valid(c) ? forLine(c, 'm2For', 'm2After') : false;
+    if (!res){
+      $('m2Num').textContent = '–';
+      $('m2Info').textContent = 'Abhi kisi mahine ka ghaata save nahi hai. Pehli boli ke liye Tareeka 1 use karo.';
+      $('m2How').textContent = 'Jaise-jaise aap mahinon ka ghaata bharogi, ye number asli data se banta jayega.';
+      return;
+    }
+    $('m2Num').textContent = show ? rs(res.value) : '–';
+    $('m2Info').textContent = res.k + ' mahine ka asli data' +
+      (res.r ? ', ' + res.r + ' mahine ka andaaza (average ' + rs(res.avg) + '/mahina)' : ' (sab mahine bhare hue)');
+    $('m2How').textContent = 'Bhare hue ' + res.k + ' mahinon ka asli fayda = ' + rs(res.actual) + '. ' +
+      (res.r ? 'Baaki ' + res.r + ' boli wale mahinon ka fayda ab tak ke average ' + rs(res.avg) +
+               ' se maana = ' + rs(res.avg * res.r) + '. ' : '') +
+      'Dono jod kar poori committee ka kul fayda ≈ ' + rs(res.value) +
+      '. Isse kam ghaate par uthane se aap nuksaan mein nahi rahogi.';
+  }
+
+  /* ---------- 6. Live boli check (kuch save nahi hota) ---------- */
+  function liveLine(name, d, sugg){
+    if (sugg === null)
+      return '<div class="note">' + name + ': abhi number nahi bana (koi mahina save nahi hai).</div>';
+    if (d <= sugg)
+      return '<div class="verdict ok">' + name + ': ' + rs(d) + ' ghaata suggested ' + rs(sugg) +
+             ' se kam hai. Le sakti ho.</div>';
+    return '<div class="verdict no">' + name + ': ' + rs(d) + ' ghaata suggested ' + rs(sugg) +
+           ' se zyada hai. Zarurat na ho toh ruko.</div>';
+  }
+  function renderLive(){
+    var c = C(), out = $('liveOut'), v = $('liveG').value;
+    if (!valid(c)){ out.innerHTML = ''; return; }
+    if (c.taken){ out.innerHTML = '<div class="note">Aap ye committee ' + monthLabel(c, c.taken) + ' mein utha chuki ho.</div>'; return; }
+    if (!nextBid(c)){ out.innerHTML = '<div class="note">Saari boliyan ho chuki hain.</div>'; return; }
+    if (v === ''){ out.innerHTML = ''; return; }
+    var d = num(v);
+    if (d >= c.amount){ out.innerHTML = '<div class="note">Ghaata kul rakam se kam hona chahiye.</div>'; return; }
+    var r2 = m2Calc(c);
+    out.innerHTML =
+      '<div class="big"><div class="line hl"><span>Is ghaate par aapko milenge</span><b>' + rs(c.amount - d) + '</b></div></div>' +
+      liveLine('Tareeka 1', d, m1Value(c)) +
+      liveLine('Tareeka 2', d, r2 ? r2.value : null);
+  }
+
+  /* ---------- Render all ---------- */
+  function renderAll(keepMonth){
+    var c = C(), err = $('setupErr');
+    if (!valid(c)){
+      err.classList.remove('hidden');
+      err.textContent = 'Kul rakam, mahine (kam se kam 2) aur organizer ka mahina (1 se ' + (c.months || '?') + ' ke beech) sahi bharo.';
+      $('baseKist').textContent = '–';
+    } else {
+      err.classList.add('hidden'); $('baseKist').textContent = rs(baseKist(c));
+    }
+    if (valid(c)) renderMonthSelect(keepMonth);
+    renderTable(); renderTaken(); renderM1(); renderM2(); renderQuick(); renderLive();
+  }
+
+  /* ---------- Backup ---------- */
+  function backup(){
+    var blob = new Blob([JSON.stringify(store, null, 1)], { type: 'application/json' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    var d = new Date(); a.download = 'committee-backup-' + d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate() + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function restore(file){
+    var rd = new FileReader();
+    rd.onload = function(){
+      try {
+        var s = JSON.parse(rd.result);
+        if (!s || !s.list) throw 0;
+        store = s; if (!store.list[store.active]) store.active = Object.keys(store.list)[0];
+        save(); renderChooser(); fillSetup(); renderAll(false); onMonthChange();
+        alert('Backup se data wapas aa gaya.');
+      } catch(e){ alert('Ye sahi backup file nahi hai.'); }
+    };
+    rd.readAsText(file);
+  }
+
+  /* ---------- Events ---------- */
+  $('liveG').addEventListener('input', renderLive);
+  ['cName','cAmount','cMonths','cOrg','cStart','m1Avg'].forEach(function(id){
+    $(id).addEventListener('input', readSetup);
+  });
+  $('qMonth').addEventListener('change', onMonthChange);
+  $('qGhaata').addEventListener('input', function(){ $('saveMsg').textContent = ''; renderQuick(); });
+  $('btnSave').addEventListener('click', saveMonth);
+  $('takenSel').addEventListener('change', function(){ C().taken = +this.value; save(); renderAll(true); });
+  $('cSelect').addEventListener('change', function(){
+    store.active = this.value; save(); fillSetup(); renderAll(false); onMonthChange();
+  });
+  $('btnNew').addEventListener('click', function(){
+    var id = newId(), n = Object.keys(store.list).length + 1;
+    store.list[id] = blank('Committee ' + n); store.active = id; save();
+    renderChooser(); fillSetup(); renderAll(false); onMonthChange();
+    $('cName').focus(); $('cName').select();
+  });
+  $('btnBackup').addEventListener('click', backup);
+  $('btnRestore').addEventListener('click', function(){ $('restoreFile').click(); });
+  $('restoreFile').addEventListener('change', function(){ if (this.files[0]) restore(this.files[0]); this.value = ''; });
+  $('btnDelete').addEventListener('click', function(){
+    var c = C();
+    if (!confirm('"' + c.name + '" ka saara hisaab delete ho jayega. Pakka?')) return;
+    delete store.list[store.active];
+    if (!Object.keys(store.list).length){ var id = newId(); store.list[id] = blank(); }
+    store.active = Object.keys(store.list)[0]; save();
+    renderChooser(); fillSetup(); renderAll(false); onMonthChange();
+  });
+
+  /* ---------- Start ---------- */
+  load(); renderChooser(); fillSetup(); renderAll(false); onMonthChange();
+})();
+</script>
+</body>
+</html>
